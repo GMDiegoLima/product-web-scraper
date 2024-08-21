@@ -22,7 +22,7 @@ Choose your preferred currency, and the script will convert all price data accor
 
 ### Installation
 To get started, clone this repository and install the required dependencies:
-1. `git clone https://github.com/yourusername/product-web-scraper.git`<br>
+1. `git clone https://github.com/GMDiegoLima/product-web-scraper.git`<br>
 2. `cd product-web-scraper`<br>
 3. `pip install -r requirements.txt`
 
