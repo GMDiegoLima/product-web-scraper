@@ -28,26 +28,26 @@ symbols_hash_map:dict = {
     '₿': 'btc'
 } # supported currencies, used to convert from symbols to currency code and vice versa
 
-def convert_price(price_data:str, source_url:str) -> str | float:
+def convert_price(price_data:str, source_url:str) -> str | None:
     original_symbol:str = ''.join([symbol for symbol in price_data if not symbol.isdigit() and symbol not in ('.', ',', 'a', 'to')])[:2]
     original_currency:str = symbols_hash_map[original_symbol]
-    price_value:str = price_data.replace(original_symbol, '')
+    value_without_symbol:str = price_data.replace(original_symbol, '')
     if remove_currency_from_csv:
         if 'aliexpress' == source_url:
-            return f'{locale.atof(price_value)/api_url_for_currencies[currency][original_currency]:.2f}'
+            return f'{locale.atof(value_without_symbol)/api_url_for_currencies[currency][original_currency]:.2f}'
         if 'ebay' == source_url:
-            price_value:list[str] = price_value.replace(' ', '').replace('a', ';').replace('to', ';').replace(u'\xa0', '').split(';')
+            price_value:list[str] = value_without_symbol.replace(' ', '').replace('a', ';').replace('to', ';').replace(u'\xa0', '').split(';')
             return ', '.join(map(lambda x: f"{locale.atof(x)/api_url_for_currencies[currency][original_currency]:.2f}", price_value))
         if 'amazon' == source_url:
-            return f"{float(price_value if ',' not in price_value else price_value.replace(',', ''))/api_url_for_currencies[currency][original_currency]:.2f}"
+            return f"{float(value_without_symbol if ',' not in value_without_symbol else value_without_symbol.replace(',', ''))/api_url_for_currencies[currency][original_currency]:.2f}"
     else:
         if 'aliexpress' == source_url:
-            return f'{currency_symbol} {locale.atof(price_value)/api_url_for_currencies[currency][original_currency]:.2f}'
+            return f'{currency_symbol} {locale.atof(value_without_symbol)/api_url_for_currencies[currency][original_currency]:.2f}'
         if 'ebay' == source_url:
-            price_value:list[str] = price_value.replace(' ', '').replace('a', ';').replace('to', ';').replace(u'\xa0', '').split(';')
+            price_value:list[str] = value_without_symbol.replace(' ', '').replace('a', ';').replace('to', ';').replace(u'\xa0', '').split(';')
             return ', '.join(map(lambda x: f"{currency_symbol} {locale.atof(x)/api_url_for_currencies[currency][original_currency]:.2f}", price_value))
         if 'amazon' == source_url:
-            return f"{currency_symbol} {float(price_value if ',' not in price_value else price_value.replace(',', ''))/api_url_for_currencies[currency][original_currency]:.2f}"
+            return f"{currency_symbol} {float(value_without_symbol if ',' not in value_without_symbol else value_without_symbol.replace(',', ''))/api_url_for_currencies[currency][original_currency]:.2f}"
 
 def parse_amazon(target_url) -> list[dict]:
     data:list = []
@@ -148,7 +148,7 @@ def scrape_website(target_url:str, headers:dict|None = None, pages:int = 1, slee
         time.sleep(sleep_time)
     return all_data
 
-def save_to_csv(data:list, filename:str = 'output.csv'):
+def save_to_csv(data:list[dict], filename:str = 'output.csv'):
     if not data:
         logging.warning("No data to save.")
         return
@@ -187,13 +187,13 @@ def pie_graph(data:list[dict], filename:str):
             names.append(item['Name'])
             prices.append(float(item['Price'].replace(currency_symbol, '')))
 
-    prices:np.array = np.array(prices).reshape(-1, 1)
+    numpy_prices:np.array = np.array(prices).reshape(-1, 1)
     kmeans = KMeans(n_clusters=5, random_state=0).fit(prices)
-    labels = kmeans.predict(prices)
+    labels = kmeans.predict(numpy_prices)
     # Count the number of data in each cluster
     unique_labels, counts = np.unique(labels, return_counts=True)
     price_ranges:list[tuple] = [
-        (int(prices[labels == label].min()), int(prices[labels == label].max()))
+        (int(numpy_prices[labels == label].min()), int(numpy_prices[labels == label].max()))
         for label in unique_labels]
 
     labels = [f'Around {currency_symbol}{price_min}-{price_max}' for price_min, price_max in price_ranges]
